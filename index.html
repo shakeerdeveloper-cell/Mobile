@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lag-Free Mobile Caster</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #121212; color: white; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; text-align: center; }
+        input, button { width: 90%; max-width: 400px; padding: 15px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; }
+        input[type="file"] { background: #222; color: #aaa; }
+        button { background: #0070f3; color: white; font-weight: bold; cursor: pointer; }
+        .control-btns { display: flex; width: 90%; max-width: 400px; gap: 10px; }
+        .control-btns button { flex: 1; }
+        .pause { background: #ff3333; }
+        #status { color: #00ff00; margin-bottom: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>Lag-Free Caster</h2>
+    <div id="status">Connecting to TV server...</div>
+    
+    <input type="file" id="fileInput" accept="video/mp4,video/x-m4v,video/*">
+    <button onclick="startCasting()">📺 Cast Movie</button>
+
+    <div class="control-btns">
+        <button onclick="sendCommand('PLAY')">▶ Play</button>
+        <button class="pause" onclick="sendCommand('PAUSE')">⏸ Pause</button>
+    </div>
+
+    <!-- Import the WebTorrent Library -->
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const fileInput = document.getElementById('fileInput');
+        
+        // 1. Initialize WebTorrent
+        const client = new WebTorrent();
+
+        // 2. Connect to your Render WebSocket
+        // REPLACE WITH YOUR RENDER URL
+        const ws = new WebSocket('wss://YOUR_RENDER_WSS_URL');
+
+        ws.onopen = () => { statusDiv.innerText = "Ready to cast!"; };
+
+        function startCasting() {
+            const file = fileInput.files[0];
+            if (!file) return alert("Please select a movie file first!");
+            
+            statusDiv.innerText = "Generating local chunks...";
+
+            // "Seed" the file directly from the phone browser
+            client.seed(file, (torrent) => {
+                statusDiv.innerText = "Casting to TV! Keep this tab open while watching.";
+                // Send the invisible peer-to-peer Magnet Link to the TV
+                ws.send(torrent.magnetURI);
+            });
+        }
+
+        function sendCommand(command) {
+            if (ws.readyState === 1) ws.send(command);
+        }
+    </script>
+</body>
+</html>
